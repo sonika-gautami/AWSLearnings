@@ -1,0 +1,91 @@
+//Questions for choosing ec2-instance:
+	Duration of instance required?
+	High performance storage?
+	dedicated or shared tenancy?
+	compute intensive OR memory intensive processing?
+	scalability?
+	availability?
+	networking requirements?
+	AWS regin near you
+	
+
+
+//Three distinct purchasing options available for provisioning the AWS EC2 instances:
+//1. On-demand instances: (default purchasing option)
+> billed on an hourly basis and no upfront payments are required.
+> Applications with "unpredictable workloads" or "short-duration" requirements are best handled 
+
+//2. Spot instances:
+> There are no upfront costs for provisioning spot instances, and the costs are typically much lower than the on-demand instances.
+> The provisioning is done through a bidding process. If you lose the bid, you will not get the EC2 instances.
+> Applications that are "viable only at very low compute prices" are a good use case
+
+//3. Reserved instances:
+> These instances can be 50–60% cheaper than on-demand instances.
+> This option is available for 1 and 3 year plans.
+> Applications with "predictable workloads" that require compute instances "for longer durations" are a good for using reserved instances.
+	
+
+
+//Instance Types:
+	general purpose
+	memory intensive
+	compute intensive
+	storage intensive (EBS optimized instances)
+	GPU instances
+	
+
+
+//Tenancy (At VPC or Instance level)
+> once selected, can't change.	
+
+//1. dedicated
+> AWS provisions your instance on dedicated hardware.
+> These instances are isolated from instances created using the shared tenancy option and instances created by other tenants.
+
+//2. shared
+> shared hardware	
+
+> Why choose dediacted:
+  - high performance or meet compliance requirements or to just avoid noisy neighbors
+
+
+
+//EBS based OR instance storage based instances:
+//1. EBS based:
+> the root device for an instance launched using an AMI is an Amazon EBS volume
+> you may or may not choose to use the instance's storage devices.
+> can change the instance size
+> can top the instances to stop billing.
+> automatically replicated within its availability zone to protect against component failures.
+> attach as many EBS as needed
+> one EBS volume to one ec2 at a time [detach from one then attach to another]
+
+//2. instance storage based:
+> disks that are physically attached to the host computer.
+> any data stored on it will be lost after a restart of the instance.
+
+> the root device for an instance launched from the AMI is an instance store volume
+> can't stop these instances. we can only terminate them.
+> can't change the size of instance, once created.
+
+
+ec2 ---------------------> EBS (persisted separately) 
+     NAS (connected via)
+
+NAS -> Network Attached Storage
+
+Encrypt this volume checkbox > when creating EBS volume from AWS console.
+
+
+
+//EC2-Classic & EC2-VPC
+> If you created your AWS account after 2013-12-04, then only EC2-VPC is supported.
+
+
+
+
+//EC2 instances can be grouped using placement groups.
+> instances requiring low latency and high bandwidth communication can be placed in the same placement group.
+> When instances are placed in this placement group, they have access to low latency, non- blocking 10 Gbps networking when communicating with other instances in the placement group (within a single availability zone).
+> AWS recommends launching all the instances within the cluster placement group at the same time.

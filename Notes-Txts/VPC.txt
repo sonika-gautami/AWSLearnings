@@ -1,0 +1,254 @@
+---------------------------------------------------------------------------------------------------------------------------
+"Amazon Cloud"
+↓
+↓
+"VPC" -> create: tenancy, n/w range (cidr block format)
+ 	  -> "Internet Gateway" (create & then attach to vpc) 
+ 					   - allows the instances/services from the public subnet to access the internet.				   
+ 	  -> "Route Table" (create: vpc id)
+		  ↓
+		  ↓
+		  create Route (destination, target= IG/NAT-G/...) 		
+	  -> "Elatic IP Address"
+			↓
+			↓
+			"NAT gateway" (create: Elastic IP Address)	
+ ↓
+ ↓
+"subnets" -> create: vpcId, AZ, cidr block (by dividing cidr block)  
+		  -> "Network ACL" = inbound & outbound rules for whole subnet
+  ↓
+  ↓
+public  &  private 	
+	↓		  ↓	
+	↓         ↓
+	↓		  -> Route Table [having NAT Gateway route] = attach to subnet
+	↓							 						  (to allow private subnet to use internet)
+	↓
+	-> Route Table [having Internet Gateway route] = attach to subnet (to make it public)
+---------------------------------------------------------------------------------------------------------------------------	
+	
+
+
+
+----------------------------------------------------------------------------------
+Region > Availibility Zone (AZ)
+
+> Each AWS region is a separate geographic area, and
+  has multiple isolated locations called availability zones.
+
+> These availability zones are individual data centers in each region.
+> They are used to deploy fault-tolerant and highly available applications.
+> The latency between these availability zones is very low.
+> If something goes wrong in an availability zone, then
+  it does not affect the systems in another availability zone.
+
+> You can achieve high availability by deploying your application 
+   across multiple Availability Zones.
+
+
+----------------------------------------------------------------------------------
+VPC:
+
+create VPC -> will also create
+	default route table
+	default network ACL
+	default security group
+
+VPC:
+> a logically isolated section of the AWS Cloud where one can launch AWS resources in a virtual network 
+> Allow connection between two VPC using VPC peering.
+> Allow a secured private connection between a VPC and your own data center using a secured VPN connection.
+  The secured connection as three parts:
+    A VPN gateway in VPC
+    The actual VPN connection
+    A customer gateway in the customer data center
+    
+    
+VPC:
+> CIDR block:
+  The allowed block size is between a 
+  	/28 (16 IP addresses) net mask and
+  	/16 (65536 IP addresses) net mask	    
+> one region, multiple availibililty zones
+> tenancy (default or dedicated)
+	If created VPC is with the dedicated attribute,
+	all instances launched in this VPC will be dedicated instances irrespective of
+	the value of the instance's tenancy attribute.
+
+> only one DHCP option set can be associated with a VPC.
+  can't modify the DHCP option set after it is created. 
+
+
+> Create Public & Private Subnets 
+	- by dividing the VPC CIDR block [CIDR blocks for subnets should not overlap]
+	- must reside entirely within one availability zone
+	
+	
+----------------------------------------------------------------------------------
+AWS Direct Connect:
+
+> to establish a dedicated network connection from their data center to AWS. 
+> private connectivity 
+
+----------------------------------------------------------------------------------
+Internet Gateway:
+
+An Internet Gateway allows you to make a subnet public by providing a route to the internet.
+All instances within the subnet can access the internet only through this gateway.
+Also, resources from the internet can access the instances in your subnet using this gateway.
+
+Create Internet Gateway > Attach to VPC
+
+
+----------------------------------------------------------------------------------
+NAT Gateway:
+
+You can allow instances from your private subnet to connect to the internet using a NAT gateway.
+The instances in the private subnet do not have an IP address, so
+ the NAT gateway translates the private IP to a public IP
+ before routing the traffic out to the internet.
+NAT stands for Network Address Translation and it does just that – translates private IPs to public IP.
+
+AWS provides two kinds of NAT resources – 
+	NAT instances
+	NAT gateways (managed by AWS; so preferred over NAT instances.)
+
+A NAT gateway -> needs an IP address. (EIP will be attached to.)
+
+VPC > NAT Gateways > Create NAT Gateway > Elastic IP Allocation ID = select E-IP > create
+
+
+
+----------------------------------------------------------------------------------
+Route table:
+
+A route table contains rules for routing traffic within a subnet and from the subnet to outside world. 
+Amongst other things, we use routing tables to add internet gateways and NAT gateways to the subnet.
+
+Create Route Table > select vpc id 
+
+Select Route Table > Create Rule > 
+	To redirect all traffic (0.0.0.0/0) to the internet gateway:
+	Destination = 0.0.0.0/0
+	Target = internetGatewayId OR natGatewayId
+
+Select Route Table > Subnet Assocition > select subnet
+
+
+
+----------------------------------------------------------------------------------
+CIDR: 
+or Classless Inter-Domain Routing -> range of IP Addresses
+
+A CIDR block of 192.0.128.0/21 means is that 
+ the first 21 bits of the 32 bits that form the IP address are part of the network,
+ the remaining bits (11) are for the IP addresses in the VPC. 
+
+
+
+----------------------------------------------------------------------------------
+Network ACL(Access Control List):
+
+VPC has two layers of security: security groups and network ACLs. 
+
+> Security Group can be allowed to modify permission "any instance that it is attached to".
+> ACLs are applicable for "the whole subnet that they are attached to".
+  Also, ACL’s are stateless so the rules for inbound and outbound traffic are separate.
+> Amazon recommends using security groups as the first choice. 
+
+> Each subnet must be associated with the network ACL.
+  If you don't specify the network ACL, then it will be automatically associated with
+  the default network ACL.
+
+
+
+----------------------------------------------------------------------------------
+Elastic IP addresses:
+
+> It is the static public IP address
+> AWS provides Elastic IP addresses, that you can create on demand.
+
+VPC > Elastic IP Address > Allocate New Address  (don't need vpc-id to be selected)
+
+ec2:
+> These IP addresses can be attached to instances and resources and detached when not required.
+> ec2-vpc can have multiple private IP addresses and
+  each private address can have corresponding EIP.
+
+
+----------------------------------------------------------------------------------
+Elastic Network Interface (ENI):
+
+> Logical networking component in a VPC that represents a "virtual network card". 
+
+ENI attributes:
+    A primary private IPv4 address
+    One Elastic IP address (IPv4) "per" private IPv4 address
+    One or more secondary private IPv4 addresses
+    One public IPv4 address
+    One or more security groups
+    One or more IPv6 addresses
+    A source/destination check flag
+    A MAC address
+    A description
+
+> Every ec-2 instance in a VPC has a default network interface,
+   called the primary network interface (eth0). 
+> You cannot detach a primary network interface from an instance.
+> You can create and attach additional network interfaces.
+
+> The maximum number of network interfaces that you can use varies by instance type. 
+
+> You can attach a network interface in one subnet to an instance in another subnet in the same VPC;
+  however, both the network interface and the instance must reside in the same Availability Zone.
+
+Create Network Interface > subnet, private IP (optional: auto-assign), security groups
+
+Network Interface > select > attach to Instance.
+
+Elastic IP > 
+	select one > 
+		Associate Address > 
+			choose ResourceType = Netwrok Interface >
+				choose Network Interafce Id
+
+
+
+----------------------------------------------------------------------------------
+Security Groups:
+
+> like firewalls for ec2
+
+
+
+----------------------------------------------------------------------------------
+DHCP options sets:
+
+> DHCP provides a standard for passing configuration information to hosts in a network.
+> It has parameters such as the domain name and the domain name servers can be specified.
+
+> only one set of DHCP options can be associated with a VPC at any given time.
+> once created DHCP options can't be chnaged.
+  To changes for VPC, create new & associate this newly created dhcp options to vpc.
+
+> By default, instances in AWS are assigned an unresolvable host name,
+  hence we need to assign our own domain name and use our own DNS servers. 
+
+> associated with your AWS account so that they can be used across all your VPCs.
+> You can assign your own domain name to your instances 
+  by specifying a set of DHCP options for your VPC. 
+
+
+
+----------------------------------------------------------------------------------
+Multiple NIC cards(ethN) and a static private IP address:
+
+NIC:
+> it can have one primary address & one or more secondary addresses. (Private IP Address)
+> it can be attached or detached from one instance to another
+> one EIP to each private IP address
+> When you launch an instance,
+  a public IP address can be autoassigned to the network interface for eth0.
+> primary eth0 can't be detached  
+> secondary ethN can be detchaed when instance is running or stopped.

@@ -1,0 +1,33 @@
+//Internet-facing ELB
+aws elb create-load-balancer
+--load-balancer-name [LoanBalancerName]
+--listeners [Listeners]
+--subnets [SubnetIds]
+--security-groups [SecurityGroups]
+
+> i.e
+  --listeners Protocol=HTTP,LoadBalancerPort=80,InstanceProtocol=HTTP,InstancePort=8080
+
+
+//health-check configuration to ELB
+aws elb configure-health-check
+--load-balancer-name [LoanBalancerName]
+--health-check [HealthCheckup]
+
+> health-check (health check configuration):
+Target=HTTP:8080/index.html,  [instance health]
+Interval=30,				  
+UnhealthyThreshold=2,		  [no of consecutive unsuccessful URL probes before the ELB changes
+							   the instance health status to unhealthy]	 	
+HealthyThreshold=2,			  [no of consecutive successful URL probes before ELB changes
+							   the instance health status to healthy.	
+Timeout=3
+
+
+//Adding instances to the ELB:
+aws elb register-instances-with-load-balancer
+--load-balancer-name [LoanBalancerName]
+--instances [Instances] [= instanceids comma separated]
+
+
+

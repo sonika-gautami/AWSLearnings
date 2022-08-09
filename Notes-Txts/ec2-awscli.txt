@@ -1,0 +1,103 @@
+//images
+aws ec2 describe-images 
+--filter
+"Name=virtualization-type,Values=paravirtual"
+"Name=root-device-type,Values=ebs" "Name=architecture,Values=x86_64"
+"Name=name,Values=ubuntu/images/ebs/ubuntu-precise-12.04-amd64-
+server-20130204"
+
+
+//run instance
+aws ec2 run-instances
+--image-id [ImageId]
+--count [InstanceCount]
+--instance-type [InstanceType]
+--key-name [KeyPairName]
+--security-group-ids [SecurityGroupIds]
+--subnet-id [SubnetId]
+
+
+//create volume
+aws ec2 create-volume
+--availability-zone [AvailabilityZone]
+--volume-type [VolumeType]
+--iops [IOPS]
+--size [Size]
+> [VolumeType]:
+ 	gp2: for General Purpose (SSD) volumes
+ 	io1: for Provisioned IOPS (SSD) volumes
+ 	standard: for Magnetic volumes.
+> [IOPS]: 
+	> valid for Provisioned IOPS (SSD) volumes 
+	> number of IOPS to provision for the volume (--iops 1000)
+> [Size]: 
+	> the size of the volume, in GiBs (--size 90)
+	
+	
+//attach volume
+aws ec2 attach-volume
+--volume-id [VolumeId]
+--instance-id [InstanceId]
+--device [Device]	
+> [Device]: 
+	> to mention the device name to expose to the instance
+	> i.e, /dev/sdh or xvdh
+	
+	
+//create tag
+aws ec2 create-tags
+--resources [Resources]
+--tags [Tags]	
+> Resources: instance-id
+> --tags Key=Name,Value=Tomcat Key=Group,Value='FronEnd Server Group'
+
+
+
+//create placement group
+aws ec2 create-placement-group
+--group-name [GroupName]
+--strategy [Strategy]
+> Strategy: placement strategy (i.e cluster)
+
+
+//placement while launching ec2
+aws ec2 run-instances
+--image-id [ImageId]
+--count [Count]
+--instance-type [InstanceType]
+--key-name [KeyPairName]
+--security-group-ids [SecurityGroupIds]
+--subnet-id [SubnetId]
+--placement [Placement]
+i.e        
+--placement AvailabilityZone=value,GroupName=value,Tenancy=value
+--placement GroupName= WebServerGroup
+
+
+
+//create image from ec2 instance
+aws ec2 create-image
+--instance-id [InstanceId]
+--name [Name]
+--description [Description]
+
+
+// make your image public
+aws ec2 modify-image-attribute
+--image-id [ImageId]
+--launch-permission [LaunchPermission]
+
+> Launch permissions Syntax: "{\"Add\": [{\"Group\":\"all\"}]}"
+
+
+
+//create AWS hosted zone in Route-53 service
+aws route53 create-hosted-zone
+       --name [Name] 						[= name of the domain]
+       --caller-reference [CallReference]	
+> caller-reference:
+	 a unique string that identifies the request and 
+	 that allows failed create-hosted-zone requests to be retried without the risk of executing the operation twice]
+       
+       
+       

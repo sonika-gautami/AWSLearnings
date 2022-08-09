@@ -1,0 +1,328 @@
+----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
+Network and Security:
+----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
+
+
+----------------------------------------------------------------------------------
+Amazon EC2 provides the following network and security features.
+
+    Amazon EC2 Key Pairs
+    Amazon EC2 Security Groups for Linux Instances
+    Controlling Access to Amazon EC2 Resources
+    Amazon EC2 Instance IP Addressing
+    Bring Your Own IP Addresses (BYOIP)
+    Elastic IP Addresses
+    Elastic Network Interfaces
+    Enhanced Networking on Linux
+    Placement Groups
+    Network Maximum Transmission Unit (MTU) for Your EC2 Instance
+    Virtual Private Clouds
+    EC2-Classic
+
+
+----------------------------------------------------------------------------------
+Amazon EC2 Key Pairs-----------------:
+> ssh public-private key pair.
+> on ec2: public key is stored at: ~/.ssh/authorized_keys
+> when making connection to ec2, you need to provide private key.
+
+> 2048 bits ssh-2 rsa keys
+
+> key pair limit: 5k per region
+
+> each keypair requires a name.
+
+> while launching ec-2, provide keypair else you cant connect to ec2 instance.
+
+
+Network & Security > KeyPairs > create key-pair.
+Network & Security > KeyPairs > import key-pair (if you created with ssh-keygen)
+
+> there can be multiple key-pairs for single instance.
+
+> for instance store backed instance : if you lost private key, you cant connect.
+> for EBS store backed instance: if you loose private key,
+	> stop the instance
+	> detach EBS volume
+	> attach EBS volume as data volume to another instance + change authorized_keys file
+	> reattach to instance
+	> start instance.
+	
+	
+
+----------------------------------------------------------------------------------
+Amazon EC2 Security Groups for Linux Instances-----------------:
+
+> security groups -> as virtual firewall that controls the traffic
+> one instance -> one or more security groups.
+> ec2 in VPC -> attach security group of that VPC
+> security groups associated with network interface
+
+> while creating ec2, if you dont specify sg then defalut sg will be associated.
+
+> security groups 
+	> add rules that allow traffic to/from the instance
+	> modify rules anytime; the new rules applied automatically to all instances.
+	
+> Rules:
+> InBound:	allowed traffic to reach to ec2
+> OutBound:	allowed traffic to leave from ec2
+
+> By defualt, sg allows all outbound traffic.
+> If there is more than one rule for a specific port, the most permissive rule will be applied.
+
+
+Default sg of default vpc: allow all inbound & outbound
+Custom sg: allow outbound & allow no inbounds
+
+
+EC2 > Security Groups > Inbound > Edit > Add Rule
+Specifying a Rule:
+ > Protocol	   (eg: tcp, udp, icmp)
+ > Port range  (eg: ssh: 22, some range: 7000-8000 all ports 0-65535)
+ > Source[inbound] / Destination[outbound]  (eg: iprange 1.1.1.1/32 ip 1.1.1.2 forall 0.0.0.0/0 forall-ipv6 ::/0)
+
+
+To allow instances that are associated with the same security group to communicate with each other,
+you must explicitly add rules for this:
+Portocol -1, Port -1, SourceIP sgID
+
+
+create SG per region -> 500
+create SG per VPC -> 100
+attach to ec2 -> 5 SG
+rules in one SG -> 50 rules
+
+
+
+Controlling Access to Amazon EC2 Resources-----------------------:
+
+Amazon ec2 permission attributes:
+
+These permissions work at the AWS account level only;
+
+EMI: LaunchPermission attribute -> that controls which AWS accounts can access the AMI
+EBS snapshot: createVolumePermission attribute -> that controls which AWS accounts can use the snapshot.
+
+
+
+IAM and Amazon ec2:
+
+> IAM user & security credentials
+
+> By default, IAM users don't have permission to create or modify Amazon EC2 resources, 
+  or perform tasks using the Amazon EC2 API.
+> create IAM policies that grant IAM users permission to use the specific resources and
+  API actions they'll need, and then attach those policies to the IAM users or groups 
+  that require those permissions.
+  
+  users permissions to read only for Amazon EC2 API actions: 
+  {
+   "Version": "2012-10-17",
+   "Statement": [{
+      "Effect": "Allow",
+      "Action": "ec2:Describe*",
+      "Resource": "*"
+    }
+   ]
+  }
+  
+  Another eg:
+  {
+   "Version": "2012-10-17",
+   "Statement": [
+   {
+   "Effect": "Allow",
+      "Action": "ec2:DescribeInstances",
+      "Resource": "*"
+   },
+   {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StopInstances", 
+        "ec2:StartInstances"
+      ],
+      "Resource": [
+      "arn:aws:ec2:us-east-1:123456789012:instance/i-1234567890abcdef0",
+      "arn:aws:ec2:us-east-1:123456789012:instance/i-0598c7d356eba48d7"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:TerminateInstances",
+      "Resource": "arn:aws:ec2:us-east-1:123456789012:instance/*",
+      "Condition": {
+         "StringEquals": {
+            "ec2:ResourceTag/purpose": "test"
+         }
+      }
+   }
+   ]
+   }
+  
+
+> Resource-level permissions refers to the ability to specify which resources users are allowed 
+  to perform actions on.
+  Amazon EC2 has partial support for resource-level permissions.
+  This means that for certain Amazon EC2 actions, 
+  you can control when users are allowed to use those actions based on conditions that have to be fulfilled, 
+  or specific resources that users are allowed to use.
+  [ If an Amazon EC2 API action does not support resource-level permissions, 
+    you can grant users permissions to use the action ]
+ 
+Allow all users to launch ec2 & us-east-1 users to create tags only while launching ec2.    
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+         "ec2:RunInstances"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+         "ec2:CreateTags"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:account:*/*",
+      "Condition": {
+         "StringEquals": {
+             "ec2:CreateAction" : "RunInstances"
+          }
+       }
+    }
+  ]
+}
+
+
+IAM Roles for Amazon EC2:
+
+Applications must sign their API requests with AWS credentials.
+Therefore, if you are an application developer, 
+you need a strategy for managing credentials for your applications that run on EC2 instances. 
+
+IAM roles:
+> your applications can securely make API requests from your instances,
+  without requiring you to manage the security credentials that the applications use. 
+> Instead of creating and distributing your AWS credentials, 
+  you can delegate permission to make API requests using IAM roles
+
+> define which accounts or AWS services can assume the role.
+> define which API actions and resources the application can use after assuming the role. 
+> attach role to Instance.
+
+
+ec2 > Instances > Actions > Instance Settings > Attach/Replace IAM role.
+
+
+
+Amazon EC2 Instance IP Addressing------------------: 
+
+> Amazon EC2 and Amazon VPC support both the IPv4 and IPv6 addressing protocols. 
+> By default, Amazon EC2 and Amazon VPC use the IPv4 addressing protocol; you can't disable this behavior.
+> When you create a VPC, you must specify an IPv4 CIDR block.
+  You can optionally assign an IPv6 CIDR block to your VPC and subnets, 
+  and assign IPv6 addresses from that block to instances in your subnet. 
+
+Private IP :
+> A private IPv4 address is an IP address that's not reachable over the Internet.
+  You can use private IPv4 addresses for communication between instances in the same VPC.
+> When you launch an instance, we allocate a primary private IPv4 address for the instance.
+  Each instance is also given an internal DNS hostname that resolves to the primary private IPv4 address;  
+> we select an available IP address in the subnet's IPv4 range for you.
+  Each instance has a default network interface (eth0) that is assigned the primary private IPv4 address.
+
+
+Public IP & External hostnames :
+A public IP address is an IPv4 address that's reachable from the Internet.
+You can use public addresses for communication between your instances and the Internet. 
+
+> public IP instance also given an external DNS hostname.
+
+> default vpc > defualy public IP assigned.
+
+> A public IP address is assigned to your instance from Amazon's pool of public IPv4 addresses,
+ and is not associated with your AWS account.
+ When a public IP address is disassociated from your instance, 
+ it is released back into the public IPv4 address pool, and you cannot reuse it.
+> You cannot manually associate or disassociate a public IP address from your instance.
+
+> If you require a persistent public IP address that can be associated to and from instances
+  as you require, use an Elastic IP address instead.
+
+> If you use dynamic DNS to map an existing DNS name to a new instance's public IP address,
+  it might take up to 24 hours for the IP address to propagate through the Internet.
+  As a result, new instances might not receive traffic 
+  while terminated instances continue to receive requests.
+  To solve this problem, use an Elastic IP address
+
+Elastic IP Addresss:
+> An Elastic IP address is a public IPv4 address that you can allocate to your account. 
+> You can associate it to and from instances as you require, and
+> it's allocated to your account until you choose to release it.
+
+Amazon DNS Server:
+> Amazon provides a DNS server that resolves Amazon-provided IPv4 DNS hostnames to IPv4 addresses.
+> The Amazon DNS server is located at the base of your VPC network range plus two
+
+IPv6 Address:
+> IPv6 addresses are globally unique, and therefore reachable over the Internet. 
+> Your instance receives an IPv6 address if an IPv6 CIDR block is associated with your VPC and subnet
+
+
+EC2 console > select Instance > above fields exits.
+
+
+> The public IP addressing feature is only available during launch. 
+  However, whether you assign a public IP address to your instance during launch or not,
+  you can associate an Elastic IP address with your instance after it's launched.
+
+Multiple IP Addresses
+> You can specify multiple private IPv4 and IPv6 addresses for your instances.
+> The number of network interfaces and private IPv4 and IPv6 addresses 
+  that you can specify for an instance depends on the instance type. 
+>
+
+
+
+
+Amazon EC2 Auto Scaling-----------------------:
+
+Amazon EC2 Auto Scaling helps you ensure that you have the correct number of Amazon EC2 instances 
+available to handle the load for your application.
+
+There are no additional fees with Amazon EC2 Auto Scaling
+
+Benefits of Auto Scaling:
+> Betterfaulttolerance
+		if unhealthy, terminate it, and launch an instance to replace it.
+		if used with multiple Availability Zones ->
+		 	if one Availability Zone becomes unavailable, Amazon EC2 Auto Scaling can launch instances
+		 	in another one to compensate.
+> Better availability
+		right amount of capacity to handle the current traffic demand.
+> Bettercostmanagement
+		you save money by launching instances when they are needed and
+		terminating them when they aren't.
+
+
+An Auto Scaling group can contain EC2 instances in one or more Availability Zones within the same Region.
+Auto Scaling groups cannot span multiple Regions.
+
+
+EC2 LOAD BALANCER:
+
+To distribute traffic between the instances in your Auto Scaling groups,
+you can introduce a load balancer into your architecture.
+
+You can attach a load balancer to your Auto Scaling group.
+The load balancer automatically distributes incoming traffic across the instances in the group.
+
+ElasticLoadBalancing supports three types of loadbalancers:
+> Application Load Balancers
+> Network Load Balancers
+> Classic Load Balancers 
+

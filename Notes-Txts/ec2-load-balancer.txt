@@ -1,0 +1,28 @@
+Elastic Load Balancer (ELB):
+
+> within a single AWS region
+> across several instances in multiple availability zones
+
+> if need load balancing across regions, then use Route 53 instead elb
+  If the primary region goes down, Route 53 fails over to the secondary region.
+
+> scale horizontally [Adding instances]
+> scale vertically	 [Increasing ec2 size]
+
+
+ELB:
+> continuosly checks the health of instance
+> directs trffic to healthy instance
+> If a healthy instance comes online, then the ELB recognizes the instance
+  and routes traffic to it.
+
+ELB with AutoScaling:
+> enabling load balacing across new instances
+
+
+Load Balancer Types:
+> internal
+> internet facing
+
+> assign Security Groups to ELB (else default SG of VPC will be used)
+> SSL termination also supported in ELB

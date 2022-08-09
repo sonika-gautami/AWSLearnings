@@ -1,0 +1,184 @@
+//create vpc
+aws ec2 create-vpc
+   --cidr-block 10.0.0.0/16
+   --instance-tenancy dedicated
+
+//Describe the VPC.
+aws ec2 describe-vpcs
+   --vpc-ids vpc-id
+
+
+
+//create subnet
+aws ec2 create-subnet
+          --vpc-id vpc-id
+          --cidr-block  CIDR block [i.e 10.0.0.0/24]
+          --availability-zone zone-name [i.e ap-southeast-1a]
+
+
+//az
+aws ec2 describe-availability-zones
+
+
+
+//create internet gateway
+aws ec2 create-internet-gateway
+
+//attach ig to vpc
+aws ec2 attach-internet-gateway
+             --internet-gateway-id igw-95c22df0
+             --vpc-id vpc-0214e967
+
+
+//create NAT Gateway:
+aws ec2 create-nat-gateway
+	 --subnet-id subnet-1a2b3c4d	[The Public subnet in which to create the NAT gateway.]
+	 --allocation-id eipalloc-37fc1a52 [Elastic IP address 
+	 								    (must not be associated with other resources)]		
+
+
+//Create a route table
+aws ec2 create-route-table
+   --vpc-id vpc-0214e967
+   
+//Add a route in the route table
+//i.e routes all traffic to the NAT instance. [Private Subnet]
+aws ec2 create-route
+   --route-table-id rtb-7c18d919	[Route-Table id]
+   --destination-cidr-block 0.0.0.0/0	
+   --instance-id i-1634e7da   	[NAT instance Id]
+
+//i.e routes all traffic to the NAT Gateway. [Private Subnet]
+aws ec2 create-route
+   --route-table-id rtb-7c18d919	[Route-Table id]
+   --destination-cidr-block 0.0.0.0/0	
+   --nat-gateway-id someVal 	[NAT Gateway Id]
+   
+
+
+//i.e all traffic to the Internet gateway. [Public Subnet]
+aws ec2 create-route
+	--route-table-id rtb-7f1bda1a	[Route-Table id]
+	--destination-cidr-block 0.0.0.0/0
+	--gateway-id igw-95c22df0	[Internet Gateway Id]
+
+
+//Associate the route table to subnet
+aws ec2 associate-route-table
+   --route-table-id rtb-7c18d919
+   --subnet-id subnet-49ca1b2c
+
+
+
+
+//create EIP
+aws ec2 allocate-address
+       --domain [Domain]       
+> Domain value:
+	standard > EIP address is used with instances in EC2-Classic
+	VPC 	 > EIP address is used with instances in a EC2-VPC
+	
+//attach EIP to ec2	
+aws ec2 associate-address
+       --network-interface-id [NetworkInterfaceId]
+       --allocation-id [AllocationId] 
+> If you don't specify the private IP address, then
+  the Elastic IP address is associated with the primary IP address.
+
+
+
+//create ENI
+aws ec2 create-network-interface
+       --subnet-id [SubnetId]
+       --groups [SecurityGroupIds]
+       --private-ip-addresses [PrivateIpAddressList]
+> i.e       
+  --private-ip-addresses PrivateIpAddress=10.0.0.26,Primary=true PrivateIpAddress=10.0.0.27,Primary=false
+
+//attach ENI to ec2
+aws ec2 attach-network-interface
+--network-interface-id [NetworkInterfaceId]
+--instance-id [InstanceId]
+--device-index [DeviceIndex]
+> DeviceIndex:
+	> provides the index of the device for the network interface attachment
+	> i.e --device-index 1
+
+//associate the EIP to the ENI
+aws ec2 associate-address
+--network-interface-id [NetworkInterfaceId]
+--allocation-id [AllocationId] 
+--private-ip-address [PrivateIpAddress]
+> AllocationId > EIP Id
+> PrivateIpAddress
+	> If no private IP address is specified, 
+	  the Elastic IP address is associated with the primary private IP address
+	  
+
+	  
+//create security group:
+aws ec2 create-security-group
+--group-name [SecurityGroupName]
+--description [Description]
+
+//create security group for ec2
+aws ec2 create-security-group
+	--group-name [SecurityGroupName]
+	--description [Description]
+	--vpc-id [VPCId]	  
+
+//to add an inbound rule to your security group
+aws ec2 authorize-security-group-ingress
+	--group-id [SecurityGroupId]
+	--protocol [Protocol]
+	--port [Port]
+	--cidr [CIDR]
+> protocol: (TCP/UDP/ICMP)
+
+//an outbound rule to your security group. 
+aws ec2 authorize-security-group-egress
+	--group-id [SecurityGroupId]
+	--protocol [Protocol]
+	--port [Port]
+	--cidr [CIDR]
+
+//attach the security group to ec2
+aws ec2 modify-instance-attribute
+	--instance-id [InstanceId]
+	--groups [SecurityGroupIds]
+
+
+
+//create key-pair
+aws ec2 create-key-pair
+--key-name [KeyPairName]
+
+
+
+//Create a DHCP option set 
+aws ec2 create-dhcp-options
+       --dhcp-configuration Key=domain-name,Values=testdomain.com
+       Key=domain-name-servers,Values=10.2.5.1,10.2.5.2     
+> Key=domain-name
+> Key=domain-name-servers
+
+//Associate the DHCP option set to VPC
+aws ec2 associate-dhcp-options
+	--dhcp-options-id dopt-dc7d65be
+	--vpc-id vpc-bb936ede
+
+
+//Create Network ACL:
+aws ec2 create-network-acl
+	--vpc-id vpc-a01106c2
+
+//Create Network ACL Entry:
+aws ec2 create-network-acl-entry
+	 --network-acl-id acl-5fb85d36
+	 --ingress			[--egress | --ingress]
+	 --rule-number 100	[ When determining whether a packet should be allowed in or out of a subnet associated with the ACL => rule numbers, in ascending order]
+	 --protocol udp
+	 --port-range From=53,To=53
+	 --cidr-block 0.0.0.0/0
+	 --rule-action allow	[allow | deny]
+]
