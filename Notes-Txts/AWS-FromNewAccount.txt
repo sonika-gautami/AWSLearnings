@@ -1,0 +1,286 @@
+> Create Account
+> Root User Login <Email | Pwd>
+
+
+first thing to do: [Best practice -> Use IAM user; not Root User ]
+https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-admin-group.html
+> Create IAM User:
+
+> Create IAM Admin User
+	[AWS Console > create user > create group > attach admin policy]
+	
+	Download AWS Access Key/Secret
+	
+	Take Console URL (Account ID)
+	
+	Logout
+
+> Now Login as IAM Admin User:
+
+	Use AccountId, User, Pwd (as above created)	
+
+	Create Another IAM User > attach only required policies
+	
+	Download AWS Access Key/Secret
+	
+	Logout
+	
+> Keep Login with IAM Normal User:
+	[Do things, if required login as IAM Admin User & attach policies to Normal User ]	
+	
+
+ECS
+
+key pair
+- create keypair
+- chmod 400 firstsshkeypair.pem
+
+vpc
+- will use default one
+
+sg
+- create with ssh/https enabled
+
+- cretae ec2 instance & luanch 
+- take public ip
+
+- ssh -i firstsshkeypair.pem ec2-user@54.87.174.146
+[ec2-user@ip-172-31-31-88 ~]$ history 
+    1  pwd
+    2  df -h
+    3  sudo yum update -y
+    4  sudo amazon-linux-extras install docker 
+    5  sudo service  docker start 
+    6  sudo usermod -a -G docker ec2-user
+    7  docker info
+    8  exit
+    9  docker info
+   10  history 
+
+
+- Installing Mongo on ec2
+https://docs.mongodb.com/manual/tutorial/install-mongodb-on-amazon/#install-mongodb-community-edition
+
+By default, MongoDB instance stores:
+    its data files in /var/lib/mongo
+    its log files in /var/log/mongodb
+
+
+   10  sudo vim /etc/yum.repos.d/mongodb-org-4.4.repo
+   11  sudo yum install -y mongodb-org
+   12  sudo yum install -y mongodb-org-4.4.4 mongodb-org-server-4.4.4 mongodb-org-shell-4.4.4 mongodb-org-mongos-4.4.4 mongodb-org-tools-4.4.4
+   13  sudo service mongod start
+   14  sudo systemctl daemon-reload
+   15  sudo systemctl status mongod
+   16  mongo
+   17  history 
+   
+mongo commands: [https://docs.mongodb.com/manual/tutorial/enable-authentication/]
+
+use admin
+
+db.createUser(
+  {
+    user: "aws-mongo",
+    pwd: "aws-mongo",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
+  }
+)   
+
+use custom
+db.createUser(
+  {
+    user: "aws-custom-mongo",
+    pwd: "aws-custom-mongo",
+    roles: [ { role: "readWrite", db: "custom" } ]
+  }
+)	
+
+> use custom
+switched to db custom
+> db.foo.insert({"key": "first collection"})
+
+verify credentials:
+
+mongo --port 27017 -u "aws-custom-mongo1" --authenticationDatabase "custom" -p	 "aws-custom-mongo" --host 54.87.174.146
+
+
+- Allow Mongo to do remote connections:
+[https://www.digitalocean.com/community/tutorials/how-to-configure-remote-access-for-mongodb-on-ubuntu-20-04]
+[ec2-user@ip-172-31-31-88 ~]$ sudo vim /etc/mongod.conf
+	change  bindIp: to 0.0.0.0 to allow all remote connections
+
+[ec2-user@ip-172-31-31-88 ~]$ sudo systemctl restart mongod
+
+
+> Docker build for AWS:
+scp build & target tars, then use below command to generate Docker-Image
+
+docker build -t aws-test-server:1.1 -f Dockerfile .
+
+[ec2-user@ip-172-31-31-88 ~]$ docker images
+REPOSITORY          TAG                                 IMAGE ID            CREATED             SIZE
+aws-test-server     1.1                                 b3dbf78befbf        7 seconds ago       577MB
+tomcat              9.0.39-jdk15-openjdk-oraclelinux7   7336d7ae70e1        4 months ago        550MB
+	
+
+Optionally, to verify:
+docker run --name aws-server-test -p 9090:8080  -it -d aws-test-server:1.1
+
+
+> Docker push to DockerHub Private Repository:
+[On Dcoker Hub > login > then create repository > <usename> / mytestings ]
+
+[https://ropenscilabs.github.io/r-docker-tutorial/04-Dockerhub.html]
+
+Note: Below steps can be performed from anywhere.
+
+[ec2-user@ip-172-31-31-88 ~]$ docker images
+REPOSITORY          TAG                                 IMAGE ID            CREATED             SIZE
+aws-test-server     1.1                                 b3dbf78befbf        15 hours ago        577MB
+tomcat              9.0.39-jdk15-openjdk-oraclelinux7   7336d7ae70e1        4 months ago        550MB
+[ec2-user@ip-172-31-31-88 ~]$ docker tag b3dbf78befbf <usename>/mytestings:v1
+[ec2-user@ip-172-31-31-88 ~]$ docker login --username=<usename>
+Password: 
+WARNING! Your password will be stored unencrypted in /home/ec2-user/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+[ec2-user@ip-172-31-31-88 ~]$ docker push <usename>/mytestings:v1
+
+[ec2-user@ip-172-31-31-88 ~]$ docker images
+REPOSITORY            TAG                                 IMAGE ID            CREATED             SIZE
+aws-test-server       1.1                                 b3dbf78befbf        15 hours ago        577MB
+<usename>/mytestings   v1                                  b3dbf78befbf        15 hours ago        577MB
+tomcat                9.0.39-jdk15-openjdk-oraclelinux7   7336d7ae70e1        4 months ago        550MB
+
+
+
+
+AWS Docker Artifactory UserName/Password stored at AWS Secret manager:
+[https://docs.aws.amazon.com/AmazonECS/latest/developerguide/private-auth.html]
+
+[Docker hub private artifactory: https://hub.docker.com/repository/docker/<usename>/mytestings]
+
+
+
+AWS free-tier:
+https://aws.amazon.com/free/?all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc&all-free-tier.q=ec2&all-free-tier.q_operator=AND
+
+
+AWS Services used:
+https://aws.amazon.com/ecs/resources/
+https://aws.amazon.com/ec2/pricing/
+https://aws.amazon.com/ecr/pricing/
+
+as not in free-tier:
+https://aws.amazon.com/documentdb/pricing/
+
+
+ecs-dg.pdf
+
+
+eks, documentdb, kinesis
+
+
+
+
+---
+
+Docker-Image:
+
+--Notification-Service
+docker build -t aws-test-server:noti-v-1.1 -f Dockerfile .
+docker images
+
+Optionally, to verify:
+docker run -it -d aws-test-server:noti-v-1.1
+
+docker tag <Image-ID> <usename>/mytestings:noti-v-1.1
+docker login --username=<usename>
+docker images
+docker push <usename>/mytestings:noti-v-1.1
+
+--ECS
+
+
+--Dummy-server
+docker tag 589dead4bc53 <usename>/mytestings:dummy-v-1.1
+docker login --username=<usename>
+docker push <usename>/mytestings:dummy-v-1.1
+
+--ON MONGO-EC2 (dummy-server)
+   93  docker pull <usename>/mytestings:dummy-v-1.1
+   94  docker images
+   95  docker run -p 9090:8080 -it -d <usename>/mytestings:dummy-v-1.1
+   96  docker logs -f 6747befa1772656c1711830cf4603d9678b8cdd1748a89f0ec0c05e244bf7999
+
+https://54.87.174.146:9090/dummy-server/
+
+	Mongo Chnage Streams:	https://stackoverflow.com/questions/59571945/the-changestream-stage-is-only-supported-on-replica-sets-error-while-using-mo
+https://developer.mongodb.com/quickstart/java-change-streams/	
+
+	cat mongodb.conf
+		replication:
+		  replSetName: "rs0"
+	connect to Mongo:
+		rs.initiate()
+  
+	
+
+
+--Free5GC ON MONGO EC2  (free5gc)
+	sudo yum install golang -y
+	[ec2-user@ip-172-31-31-88 ~]$ go version
+		--go version go1.15.8 linux/amd64
+	[ec2-user@ip-172-31-31-88 ~]$ git clone --recursive -b v3.0.5 -j `nproc` https://github.com/free5gc/free5gc.git
+	[ec2-user@ip-172-31-31-88 ~]$ cd free5gc/
+	[ec2-user@ip-172-31-31-88 free5gc]$ make server
+	[ec2-user@ip-172-31-31-88 free5gc]$ vim config/servercfg.yaml 
+	[ec2-user@ip-172-31-31-88 free5gc]$ vim ./NFs/server/accesstoken/api_access_token_request.go 
+	[ec2-user@ip-172-31-31-88 free5gc]$ nohup ./bin/server > server.log 2>&1 &
+		--[1] 29093
+
+https://54.87.174.146:9091
+
+
+--server-Client ECS + Docker build
+
+
+
+
+--Kafka 54.144.126.209
+
+https://kafka.apache.org/quickstart
+https://stackoverflow.com/questions/28146409/kafka-unable-to-send-a-message-to-a-remote-server-using-java
+    5  wget https://mirrors.estointernet.in/apache/kafka/2.7.0/kafka_2.13-2.7.0.tgz
+    6  tar -xvf kafka_2.13-2.7.0.tgz 
+    7  cd kafka_2.13-2.7.0/
+   11  sudo yum install java
+
+    9  cat config/zookeeper.properties
+   15  nohup bin/zookeeper-server-start.sh config/zookeeper.properties > zookeeper.log 2>&1 &
+
+   27  vim config/server.properties
+   32  export KAFKA_HEAP_OPTS="-Xmx256M -Xms128M"
+   34  nohup bin/kafka-server-start.sh config/server.properties > kafka.log 2>&1 &
+
+Create Topics
+   39  cd kafka_2.13-2.7.0/
+   41  ./bin/kafka-topics.sh --create --topic custom_topic1 --bootstrap-server localhost:9092 
+   42  ./bin/kafka-topics.sh --create --topic custom_topic2  --bootstrap-server localhost:9092 
+   43  ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+Consumers
+	cd kafka_2.13-2.7.0/
+	./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092  --topic custom_topic2 --from-beginning
+	./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092  --topic custom_topic1 --from-beginning	
+	
+	
+./kafka-consumer-groups.sh --bootstrap-server localhost:9092  --list	
+
+
+
+ipv4 range:
+https://www.site24x7.com/tools/ipv4-subnetcalculator.html

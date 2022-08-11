@@ -1,0 +1,107 @@
+--------------------------------
+--------------------------------
+SQS:    [Simple Queue Service]
+--------------------------------
+Standard Queue Type (by default)
+FIFO Queue Type     (suffix with .fifo)
+DeadLetter Queue    (for failed messages - to analyse later)
+
+> delivery: at-least once
+> fully managed
+    (including scaling)
+> queueing service
+> any level of data, any thoughput,
+    without lossing or without masking consumer service to always avilable.
+> FIFO not guranteed
+    have your own sequence no in message if ordering matters
+> supports multiple readers & writers on same queue
+    (1 message among all readers)
+
+> Message Visibility Timeout: (in seconds)
+    (at maximun of 12 hours allowed)
+Visibility Timeout = 30 secs
+    the message-A is retrieved from queue at 00:01 seconds;
+    the consumer completed processing the message-A at 00:06;
+    the consumer deletes the message-A from queue at 00:07
+    As, message is deleted, the message won't be available for re-consume.
+
+Visibility Timeout = 30 secs
+    the message-A is retrieved from queue at 00:01 seconds;
+    the consumer completed processing the message-A at 00:40;
+    -- As the Visibility Timeout = 30 secs, the message-A will be re-consume at 00:31
+       Here, other consumer can pick this message-A
+
+> DelaySeconds:
+    (0 to 15 minutes; default = 0)
+    > Once the messge is in queue, it won't be visible(not allowed to consume) upto DelaySeconds - Time
+    > Post this, the message is ready/visible to be consumed.
+
+> In Flight Message
+    ( 120,000 messages )
+    > A messge in queue (visible message) (Neither Delayed Nor In Visibility Timeout)
+
+Queue-URL
+    > queue name unique in your scope of all queues
+    > e.g https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue
+Queue-Message-ID
+        (upto 100 chars)
+    > returned by sqs; a unique identifier
+Queue-Message-Receipt-Handle
+        (upto 1024 chars)
+    > returned with message
+    > this must be used to delete the message / to change visibility timeout for message
+
+Message Attribute:
+    (upto 10)
+    > Metadata items (headers/tags)
+    > send along with message-body
+
+Long-Pollling:
+    (WaitTimeSeconds upto 20 seconds)
+    > if app is polling every 3 secs, and if no new data, it'll return empty &
+        do same in loop; wasting cpu cycles
+    > To solve this,
+      while polling, along with ReceiveMesage if WaitTimeSeconds is passed then,
+      if no new messages, it'll wait for WaitTimeSeconds before returning;
+      But, if any new message comes before WaitTimeSeconds ends, it'll return immediately.
+
+
+Dead-Letter Queue:
+    > other queues/resources can target DeadLetter Queue for un-successfully processed messages
+    > this can be sent/received similar like sqs queque
+
+Message Retention Time:
+    > default 4 days
+    > extended upto 14 days
+
+Max Msg Size:
+    > upto 256 kb
+
+use Redrive policy:
+    > Maximum Receives:
+        the max no of times the msgs can be failed;
+        post that they'll be send to dead-letter queue
+    > dead-letter-queue-name:
+    If enables, the msgs will be send to dead letter based on Maximum Receives.
+
+Purge Queue:
+    > delete all messages
+    > nearly 60 secs it takes
+
+FIFO SQS Queue:
+    > order is maintained
+    > 300 per second limit
+    > suffix of 'fifo'
+    > exactly once
+
+Encryption of Message:
+    > SSE-SQS
+    > SSE-KMS
+
+SQS Triggers:
+    > SNS topic
+    > Lambda
+        Lambda polls the queue and invokes your Lambda function
+            synchronously with an event that contains queue messages.
+        You can specify another queue to act as a dead-letter queue for messages that
+            your Lambda function can't process.

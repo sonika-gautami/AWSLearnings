@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Id": "Allow_Other_AWS_Account_To_Send_To_Queue",
+  "Statement": [
+    {
+      "Sid": "Queue1_SendMessage",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "987654321021"
+      },
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:us-east-1:123456789012:queue1"
+    }
+  ]
+}

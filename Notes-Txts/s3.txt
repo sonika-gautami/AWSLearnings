@@ -1,0 +1,115 @@
+--------------------------------
+--------------------------------
+S3:
+--------------------------------
+C > eventual consistency
+	(for new, -> read-after-write consistency)
+	(for update, delete -> eventual consistency; can return stale-data)
+A > 99.99% availability (Storage-Class)
+P > partitions (automatically replicated in diff AZ in a region)
+
+D > Durability
+	 99.(9 times 9) -> Storage Class
+	 99.99 			-> Reduced Redendency Storage (RRS)
+
+
+> object storage
+> s3 object -> data + metadata -> as stream of bytes (regardless of what type of data it is)
+	> max size 5 TB
+> secure, durable, highly-scalable, optimized for reads
+	> automatically replicated on multiple devices in multiple facilities within a region.
+	> automatically partitions buckets to support very high request rates and simultaneous access by many clients.
+
+> buckets
+	> global but,
+		> s3 bucket is created under a region where we choose
+		> bucket is not replicated in other region/bucker
+	> must be unique across all(yours + others') AWS accounts
+	> name: 63 lowercase letters, hyphen, dot, numbers
+	> by default: 100 per account
+	> unmlimited files under bucket
+
+> storage classes:
+	S3 Standard (general purpose):
+		durability 99.(9 times 9)%, avaibility 99.99%
+	S3 Standard in-frequent access (Standard-IA):
+		durability 99.(9 times 9)%, lower cost,
+		used of data where access-data > 30 days
+		min object zise - 128 kb; stored for longer than 30 days
+	S3 Reduced Redendency Storage(RRS):
+		less durability 99.99%, lower cost (than above 2)
+	Glacier Storage Class (archive):
+		retrieval time = 3-5 hours
+		if we restore, the data is back to s3-RRS
+
+
+> meta data
+	1. system metadata -> last modified date, object size, http-content-type, md5 digest
+	2. user metadata   -> tags (only specified while object is created)
+
+> keys
+	> 1024 bytes of unicode utf-8 chars
+
+
+object-unique-id -> bucket-name  + key + (version optional)
+url  			 -> http(s)://<bucket-name>.s3.<region-name>.amazonaws.com/<key-name>
+
+
+In flight encryption -> HTTPS endpoint
+At Rest encryption -> (SSE) Server Side Encryption
+						SSE - S3 (aws managed keys)
+						SSE - KMS
+						SSE - C (Customer Provided Keys)
+Cleint Side Encryption -> AWS-KMS
+						  Client-Key
+
+
+MFA	(for deleting & for version change)
+PreSigned Urls	(object level)
+Versioning (bucket level)
+Multipart Upload:	(for larger objects)
+	-> should  >100 mb
+	   must	   >5 gb
+	-> low-level-apis: self manage split of larger file; keep track of parts
+	   high-level-api (aws s3 cp/mv/sync): automaticallu handled
+    -> set an object lifecycle policy on a bucket
+    	- to abort incomplete multipart uploads after a specified number of days
+    	- to minimize the storage costs of uncompleted parts of multipart uploads
+Range GET:
+	-> To download/get the portion of large s3 object
+	-> Header with value as bytes range
+	-> e.g large Glacier backup
+
+Crosss-Region-Replication
+	-> asynchronously
+	-> to replicate new s3 objects from one region bucket to another regions's bucket
+		object + meta-data + ACLs
+	-> to enable, versioning is must on both ends
+				  IAM policy to give permission
+	-> this will only replicate NEW objects;
+		for existing objects, need to copy separately
+
+Triggers:
+	-> Lambda, sqs, sns-topic
+	-> at bucket level, (with prefix/suffix)
+			created, deleted, RRS object is lost
+
+> Request-rates > 100 reuqest per second:
+	-> random distribution of keys
+			e.g including a hash as prefix of key name
+	-> use of CloudFront distribution as CachingLayer in front of S3
+
+
+
+Glacier:
+--------------------------------
+
+> for cold data
+> extremely low cost
+> 3-5 hours of retrieval time
+> data is stored in archives; upto 40 TB of data; unlimited no of archives
+> automatically enctrypted; immutatble once created; cant be modified
+> each archive is assigned one unique archive-id (at the time of creation)
+
+> vaults -> containers for archives
+		 -> up to 1000 per account

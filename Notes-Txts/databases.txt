@@ -1,0 +1,48 @@
+OLTP:   (frequest; simple)
+    Rdbms -> Aws Rds
+
+OLAP:   (in-frquest; complex)
+    Rdbms -> Aws RedShift
+
+Nosql: (horizontal scalalibity)
+    DynamoDb,
+    DocumentDb
+
+
+DynamoDb:
+fully managed
+fast & low latency performance
+400 kb data size
+
+tables
+items
+attributes
+
+
+Primary Key:
+    Partiton Key  + Sort Key
+    (Hash)          (Range)
+
+    If Partition(Hash) Key can uniquelly identifiers the record, Sort(Range) Key is not required.
+
+One or more secondary indexes
+
+maximize your thoughput, by
+    ditributing requests across full range of partition keys.
+The keys should be distributed so as if there is mutiple rewuests coming
+    they are of diff partition keys.
+
+Read Capacity
+Write Capacity
+
+capacity units -> size of units
+
+Dynamo db scaling -> clouwatch alarms
+
+the provisioned thoughput is distributed evenly on each partion of the table.
+(there is no sharing of thoughput among different partitons)
+
+per partition limits:
+     - 10 GB max
+     - 3000 read capacity
+     - 1000 write capacity

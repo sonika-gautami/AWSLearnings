@@ -1,3 +1,18 @@
+--------------------------------
+--------------------------------
+ARN [Amazon Resource Name]
+--------------------------------
+Format:
+arn:aws:<aws-service>:<aws-region>:<aws-account>:[<resourcetype>:]<service-specific-resource>
+
+Format: 	arn:aws:<aws-service>:<aws-region>:<aws-account>:<service-specific-resource>			
+e.g
+s3 bucket:  arn:aws:s3           :us-east-1   :123456789012 :my_bucket/logs/*
+dynamo tb:  arn:aws:dynamodb     :us-east-1   :123456789012 :table/my_tablle_1
+iam user:   arn:aws:iam          :us-east-1   :123456789012 :user/sample_user_1
+
+--------------------------------
+--------------------------------
 Region >
 		AZ >
 			Edge Locations 
@@ -27,7 +42,8 @@ ServerLess:
 	Lambda	
 	
 	
-	
+--------------------------------
+--------------------------------
 Cloud Best Practices:
 	Auto-Scale
 	Automate (Cloud Formation)
@@ -43,129 +59,16 @@ Cloud Best Practices:
 
 Acid  <-> Base [ EventualConsistency]
 
-
+--------------------------------
+--------------------------------
 Notes:
 - Resources aren’t replicated across regions unless organizations choose to do so.
 - Security:
 	- AWS helps by sharing the security responsibilities with the organization. 
 	- AWS manages the underlying infrastructure, and the organization can secure anything it deploys on AWS. 
 
---------------------------------
---------------------------------
-S3:
---------------------------------
-C > eventual consistency 
-	(for new, -> read-after-write consistency)
-	(for update, delete -> eventual consistency; can return stale-data)
-A > 99.99% availability (Storage-Class)		
-P > partitions (automatically replicated in diff AZ in a region)
-
-D > Durability
-	 99.(9 times 9) -> Storage Class	 
-	 99.99 			-> Reduced Redendency Storage (RRS)
 
 
-> object storage 
-> s3 object -> data + metadata -> as stream of bytes (regardless of what type of data it is)
-	> max size 5 TB
-> secure, durable, highly-scalable, optimized for reads 
-	> automatically replicated on multiple devices in multiple facilities within a region. 
-	> automatically partitions buckets to support very high request rates and simultaneous access by many clients.
-
-> buckets
-	> global but,
-		> s3 bucket is created under a region where we choose
-		> bucket is not replicated in other region/bucker 
-	> must be unique across all(yours + others') AWS accounts
-	> name: 63 lowercase letters, hyphen, dot, numbers
-	> by default: 100 per account
-	> unmlimited files under bucket
-
-> storage classes:
-	S3 Standard (general purpose): 	
-		durability 99.(9 times 9)%, avaibility 99.99%
-	S3 Standard in-frequent access (Standard-IA): 
-		durability 99.(9 times 9)%, lower cost, 
-		used of data where access-data > 30 days
-		min object zise - 128 kb; stored for longer than 30 days
-	S3 Reduced Redendency Storage(RRS): 
-		less durability 99.99%, lower cost (than above 2)
-	Glacier Storage Class (archive):
-		retrieval time = 3-5 hours
-		if we restore, the data is back to s3-RRS 
-		 
-	
-> meta data
-	1. system metadata -> last modified date, object size, http-content-type, md5 digest
-	2. user metadata   -> tags (only specified while object is created)
-	
-> keys
-	> 1024 bytes of unicode utf-8 chars
-
-
-object-unique-id -> bucket-name  + key + (version optional)
-url  			 -> http(s)://<bucket-name>.s3.<region-name>.amazonaws.com/<key-name>
-	
-
-In flight encryption -> HTTPS endpoint
-At Rest encryption -> (SSE) Server Side Encryption
-						SSE - S3 (aws managed keys)
-						SSE - KMS 
-						SSE - C (Customer Provided Keys)
-Cleint Side Encryption -> AWS-KMS
-						  Client-Key												
-
-
-MFA	(for deleting & for version change)
-PreSigned Urls	(object level)
-Versioning (bucket level)
-Multipart Upload:	(for larger objects)
-	-> should  >100 mb
-	   must	   >5 gb
-	-> low-level-apis: self manage split of larger file; keep track of parts
-	   high-level-api (aws s3 cp/mv/sync): automaticallu handled 
-    -> set an object lifecycle policy on a bucket 
-    	- to abort incomplete multipart uploads after a specified number of days
-    	- to minimize the storage costs of uncompleted parts of multipart uploads
-Range GET:
-	-> To download/get the portion of large s3 object
-	-> Header with value as bytes range
-	-> e.g large Glacier backup
-
-Crosss-Region-Replication
-	-> asynchronously
-	-> to replicate new s3 objects from one region bucket to another regions's bucket
-		object + meta-data + ACLs
-	-> to enable, versioning is must on both ends
-				  IAM policy to give permission
-	-> this will only replicate NEW objects;
-		for existing objects, need to copy separately				  	
-
-Triggers:	
-	-> Lambda, sqs, sns-topic
-	-> at bucket level, (with prefix/suffix)
-			created, deleted, RRS object is lost
-
-> Request-rates > 100 reuqest per second:
-	-> random distribution of keys
-			e.g including a hash as prefix of key name
-	-> use of CloudFront distribution as CachingLayer in front of S3		
-
-
-
-Glacier:
---------------------------------
-
-> for cold data
-> extremely low cost
-> 3-5 hours of retrieval time
-> data is stored in archives; upto 40 TB of data; unlimited no of archives
-> automatically enctrypted; immutatble once created; cant be modified
-> each archive is assigned one unique archive-id (at the time of creation)
-
-> vaults -> containers for archives
-		 -> up to 1000 per account
-		 
 
 
 --------------------------------
@@ -177,72 +80,11 @@ DynamoDB:
 
 --------------------------------
 --------------------------------
-IAM:
-Identity(who) & Access Management(what)
---------------------------------
-IAM users sign-in link:
-	https://<accont-no>.signin.aws.amazon.com/console
-	[Access key ID,	Secret access key]
-
-AWS Directory Service ->  Active Directory of on-prem
-AWS Cognito 		  ->  Mobile-App
-
-
-Permissions for AWS Infro
-	> to limit a user
-	> to perform a single action
-	> on specific resource
-	> from specific IP-Address
-	> during specific time
-	
-
-Principal:
-	- Root User	(the first user, complete access)
-	- IAM User	(Group > User)	
-	- IAM Role
-
-ROOT Account:
-> Initial email-id & password
-> It is strongly recommended that you do not use the root user.
-> Instead, use the root user only to create your first IAM user.
-
-IAM User:
-> users are persistant; no expiry; stays until deleted
-
-
-IAM Role:
-> Roles are used to grant specific privileges to specific actors
-	e.g The Role used for creating ec2 instance
-			> if ec2 needs to access s3 then, this ec2 role should be granted access.
-
->  When actor assumes a role, 
-	> AWS Security Token Service (STS)
-		> will provide a temporary security token to the actor
-   while, requtesing for token, active time of token is also given.
-
-aws sts get-session-token \
-  --serial-number arn:aws:iam::123456789012:mfa/sonika.gautami \
-  --duration-seconds 129600 \
-  --token-code <mfa-otp>
-it returns:  AccessKeyId, SecretAccessKey, SessionToken, Expiration
-
-   		
-
-
-Policies > Group/User/Role
-
-P	Principal  [Principal = who	-> ARN of user/group/role]
-A	Action	   [ec2:createInstance]	
-E	Effect	   [Allow/Deny] 	
-R	Resource   [ARN]
-C	Condition	
-
-
---------------------------------
---------------------------------
 Lamba:
 --------------------------------
 - AWS Lambda runs your back-end code 
 	on its own AWS compute fleet of Amazon EC2 instances 
 	across multiple Availability Zones in a region
-	
+
+
+

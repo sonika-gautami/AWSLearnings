@@ -1,0 +1,96 @@
+--------------------------------
+--------------------------------
+IAM:
+Identity(who) & Access Management(what)
+--------------------------------
+IAM users sign-in link:
+	https://<accont-no>.signin.aws.amazon.com/console
+	[Access key ID,	Secret access key]
+
+AWS Directory Service ->  Active Directory of on-prem
+AWS Cognito 		  ->  Mobile-App
+
+
+Permissions for AWS Infro
+	> to limit a user
+	> to perform a single action
+	> on specific resource
+	> from specific IP-Address
+	> during specific time
+
+
+Principal:
+	- Root User	(the first user, complete access)
+	- IAM User	(Group > User)
+	- IAM Role
+
+ROOT Account:
+> Initial email-id & password
+> It is strongly recommended that you do not use the root user.
+> Instead, use the root user only to create your first IAM user.
+
+IAM User:
+> users are persistant; no expiry; stays until deleted
+
+
+IAM Role or temporary security tokens:
+> Roles are used to grant specific privileges to specific actors
+	e.g The Role used for creating ec2 instance
+			> if ec2 needs to access s3 then, this ec2 role should be granted access.
+	> cross account access
+	  (users of other account can gain access)
+
+
+>  When actor assumes a role,
+	> AWS Security Token Service (STS)
+		> will provide a temporary security token to the actor
+  	> while, requtesing for token, active time of token is also given.
+  	> 15 mins to 36 hours
+
+aws sts get-session-token \
+  --serial-number arn:aws:iam::123456789012:mfa/sonika.gautami \
+  --duration-seconds 129600 \
+  --token-code <mfa-otp>
+it returns:  AccessKeyId, SecretAccessKey, SessionToken, Expiration
+
+
+> ec2 roles:
+	while application is runing on ec2,
+		most of aws sdks automatically assume the role of ec2 &
+		 requests for token (from STS) &
+		 	then using this token will read/write from s3.
+
+
+Policies > Group/User/Role
+
+P	Principal  [Principal = who	-> ARN of user/group/role]
+A	Action	   [ec2:createInstance]	 -> Service:service-speicfic-actions
+E	Effect	   [Allow/Deny]
+R	Resource   [ARN with wildcards]
+C	Condition
+
+Condition:
+> optional
+> one or more additoncal restrictions to limit actions on resource
+	e.g IPAddress,
+		Time Interval
+
+MFA  Multi Factor Authetication
+Rotating Keys:
+> best practice to rotate keys assiciated with IAM User
+
+
+Resource Level Policy
+    - Policy attached directly to a Resource
+IAM-Principal Level Policy
+    - Policy attached to the IAM Principal
+
+Evalution of Policy: (conflicts)
+    (Except AssumeRole)
+> Deny by default
+> If any explicy Deny, Return "Deny"
+> Else If any explicit Allow, Return "Allow"
+> Else default-deny, Return "Deny"
+
+
+
