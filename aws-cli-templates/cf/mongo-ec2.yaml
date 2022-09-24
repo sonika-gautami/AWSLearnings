@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2
+
+Parameters:
+  AMIImageId:
+    Type: AWS::EC2::Image::Id
+    Default: "ami-038f1ca1bd58a5790"
+    Description: AMI-Image-Id
+  SSHKeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: "firstsshkeypair"
+    Description: SSH Key pair to connect to EC2
+  SecurityGroupId:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Default: "sg-065a0c2f475fd2a72"
+    Description: Secuiry Group assigned to EC2
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Default: "vpc-90ef5bed"
+    Description: Secuiry Group assigned to EC2
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Default: "subnet-58fa9d79"
+    Description: Secuiry Group assigned to EC2
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+  DocumentDBPermFile:
+    Type: String
+    Default: "wget https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem"
+  DocumentDBCmd:
+    Type: String
+    Default: "mongo --ssl --host MyTest-document-db-guavus.cluster-cks5sfsjsmfj.us-east-1.docdb.amazonaws.com:27017 --sslCAFile rds-combined-ca-bundle.pem --username MyTest --password MyTest12#"
+
+Resources:
+  MongoEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref 'AMIImageId'
+      InstanceType: "t2.micro"
+      KeyName: !Ref 'SSHKeyPairName'
+      SecurityGroupIds:
+        !Ref 'SecurityGroupId'
+      SubnetId: !Ref 'SubnetId'
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo "[mongodb-org-4.4]" >  /etc/yum.repos.d/mongodb-org-4.4.repo
+          echo "name=MongoDB Repository" >> /etc/yum.repos.d/mongodb-org-4.4.repo
+          echo "baseurl=https://repo.mongodb.org/yum/amazon/2/mongodb-org/4.4/x86_64/" >> /etc/yum.repos.d/mongodb-org-4.4.repo
+          echo "gpgcheck=1" >> /etc/yum.repos.d/mongodb-org-4.4.repo
+          echo "enabled=1" >> /etc/yum.repos.d/mongodb-org-4.4.repo
+          echo "gpgkey=https://www.mongodb.org/static/pgp/server-4.4.asc" >> /etc/yum.repos.d/mongodb-org-4.4.repo
+          yum install -y mongodb-org-shell-4.4.4
+          ${DocumentDBPermFile}
+          ${DocumentDBCmd} --eval '
+                      db = db.getSiblingDB("MyTest")
+                      db.createUser(
+                      {
+                        user: "MyTest",
+                        pwd: "MyTest12#",
+                        roles: [ { role: "readWrite", db: "MyTest" } ]
+                      }
+                      );
+                      '

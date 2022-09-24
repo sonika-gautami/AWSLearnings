@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS Tasks for MyTest
+
+Parameters:
+  ECSClusterStackName:
+    Type: String
+    Default: "MyTestEcsClusterSatck"
+  ECSTaskDefinitionsStackName:
+    Type: String
+    Default: "MyTestEcsTaskDefinitionsSatck"
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+
+Resources:
+  MyTestServer:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: "MyTestServerContainer"
+      Cluster: !ImportValue
+        'Fn::Sub': '${ECSClusterStackName}:MyTestContainersClusterArn'
+      TaskDefinition: !ImportValue
+        'Fn::Sub': '${ECSTaskDefinitionsStackName}:MyTestServerTDArn'
+      DesiredCount: 1
+      LaunchType: EC2
+      PropagateTags: TASK_DEFINITION
+      SchedulingStrategy: REPLICA
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+

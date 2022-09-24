@@ -1,0 +1,213 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS TaskDefinitions for MyTest
+
+Parameters:
+  ExecutionRoleARN:
+    Type: String
+    Default: "arn:aws:iam::<account>:role/ecs-task-role"
+  TaskRoleARN:
+    Type: String
+    Default: "arn:aws:iam::<account>:role/ecs-task-role"
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+  DockerCredentialsSMArn:
+    Type: String
+    Default: "arn:aws:secretsmanager:us-east-1:<account>:secret:docker-private-artifcatory-nTdgSd"
+  NrfServerUriAsEnv:
+    Type: String
+    Default: "https://<IP>:<PORT>"
+  NrfServerUriAsEnvForUEMobility:
+    Type: String
+    Default: "https://<IP>:<PORT>"
+  MongoHost:
+    Type: String
+    Default: "<IP>"
+  MongoAdditionalProps:
+    Type: String
+    Default: ""
+  KinesisShardId:
+    Type: String
+    Default: "shardId-000000000000"
+  MyTestClientImage:
+    Type: String
+    Default: "sonikasg/mytestings:MyTest-client-v1.1"
+  MyTestNotificationSerImage:
+    Type: String
+    Default: "sonikasg/mytestings:noti-v-1.1"
+  MyTestUUID:
+    Type: String
+    Default: "AADAFDAF-DAF0-DAF0-DAF0-DAF0DAF0DAF0"
+  MyTestServerIpPort:
+    Type: String
+    Default: "10.0.1.3:9090"
+
+Resources:
+  MyTestClientTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: "MyTest-Client"
+      Cpu: 128
+      Memory: 256
+      ExecutionRoleArn: !Ref 'ExecutionRoleARN'
+      TaskRoleArn: !Ref 'TaskRoleARN'
+      RequiresCompatibilities:
+        - "EC2"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+      ContainerDefinitions:
+        - Name: "MyTestClientContainer"
+          Image: !Ref 'MyTestClientImage'
+          Cpu: 128
+          Memory: 256
+          Environment:
+            - Name: "NRF_SERVER_URI"
+              Value: !Ref 'NrfServerUriAsEnv'
+            - Name: "mongodb_host"
+              Value: !Ref MongoHost
+            - Name: "mongodb_additional_props"
+              Value: !Ref MongoAdditionalProps
+            - Name: "mongo_ssl_enabled"
+              Value: true
+            - Name: "KINESIS_SHARD"
+              Value: !Ref KinesisShardId
+            - Name: "MyTest_UUID"
+              Value: !Ref MyTestUUID
+            - Name: "MyTest_IP_PORT"
+              Value: !Ref MyTestServerIpPort
+          RepositoryCredentials:
+            CredentialsParameter: !Ref 'DockerCredentialsSMArn'
+
+  MyTestNotificationTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: "MyTest-Notification"
+      Cpu: 128
+      Memory: 256
+      ExecutionRoleArn: !Ref 'ExecutionRoleARN'
+      TaskRoleArn: !Ref 'TaskRoleARN'
+      RequiresCompatibilities:
+        - "EC2"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+      ContainerDefinitions:
+        - Name: "MyTestNotificationContainer"
+          Image: !Ref 'MyTestNotificationSerImage'
+          Cpu: 128
+          Memory: 256
+          Environment:
+            - Name: "mongodb_host"
+              Value: !Ref MongoHost
+            - Name: "mongodb_additional_props"
+              Value: !Ref MongoAdditionalProps
+            - Name: "mongo_ssl_enabled"
+              Value: true
+            - Name: "KINESIS_SHARD"
+              Value: !Ref KinesisShardId
+          RepositoryCredentials:
+            CredentialsParameter: !Ref 'DockerCredentialsSMArn'
+
+  MyTestToNRFSubsriptionsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: "MyTest-NRFSubsriptions"
+      Cpu: 128
+      Memory: 256
+      ExecutionRoleArn: !Ref 'ExecutionRoleARN'
+      TaskRoleArn: !Ref 'TaskRoleARN'
+      RequiresCompatibilities:
+        - "EC2"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+      ContainerDefinitions:
+        - Name: "MyTestToNRFSubsriptionsContainer"
+          Image: !Ref 'MyTestClientImage'
+          Command:
+            - sh
+            - /usr/guavus/nrf-client/createSubscription.sh
+          Cpu: 128
+          Memory: 256
+          Environment:
+            - Name: "NRF_SERVER_URI"
+              Value: !Ref NrfServerUriAsEnv
+            - Name: "mongodb_host"
+              Value: !Ref MongoHost
+            - Name: "mongodb_additional_props"
+              Value: !Ref MongoAdditionalProps
+            - Name: "mongo_ssl_enabled"
+              Value: true
+            - Name: "KINESIS_SHARD"
+              Value: !Ref KinesisShardId
+            - Name: "MyTest_UUID"
+              Value: !Ref MyTestUUID
+            - Name: "MyTest_IP_PORT"
+              Value: !Ref MyTestServerIpPort
+          RepositoryCredentials:
+            CredentialsParameter: !Ref 'DockerCredentialsSMArn'
+
+  MyTestToAMFSubsriptionsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: "MyTest-AMFSubsriptions"
+      Cpu: 128
+      Memory: 256
+      ExecutionRoleArn: !Ref 'ExecutionRoleARN'
+      TaskRoleArn: !Ref 'TaskRoleARN'
+      RequiresCompatibilities:
+        - "EC2"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+      ContainerDefinitions:
+        - Name: "MyTestToAMFSubsriptionsContainer"
+          Image: !Ref 'MyTestClientImage'
+          Command:
+            - sh
+            - /usr/guavus/nrf-client/startUeMobilityFlow.sh
+          Cpu: 128
+          Memory: 256
+          Environment:
+            - Name: "NRF_SERVER_URI"
+              Value: !Ref NrfServerUriAsEnvForUEMobility
+            - Name: "mongodb_host"
+              Value: !Ref MongoHost
+            - Name: "mongodb_additional_props"
+              Value: !Ref MongoAdditionalProps
+            - Name: "mongo_ssl_enabled"
+              Value: true
+            - Name: "KINESIS_SHARD"
+              Value: !Ref KinesisShardId
+            - Name: "MyTest_UUID"
+              Value: !Ref MyTestUUID
+            - Name: "MyTest_IP_PORT"
+              Value: !Ref MyTestServerIpPort
+          RepositoryCredentials:
+            CredentialsParameter: !Ref 'DockerCredentialsSMArn'
+
+Outputs:
+  MyTestClientTDArn:
+    Description: ARN of MyTest-Client Task-Def
+    Value: !GetAtt 'MyTestClientTaskDefinition.TaskDefinitionArn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestClientTDArn' ] ]
+  MyTestNotificationTDArn:
+    Description: ARN of MyTest-Notification-Service Task-Def
+    Value: !GetAtt 'MyTestNotificationTaskDefinition.TaskDefinitionArn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestNotificationTDArn' ] ]
+  MyTestToNRFSubsriptionsTDArn:
+    Description: ARN of MyTest-to-Nrf-Subscriptions Task-Def
+    Value: !GetAtt 'MyTestToNRFSubsriptionsTaskDefinition.TaskDefinitionArn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestToNRFSubsriptionsTDArn' ] ]
+  MyTestToAMFSubsriptionsTDArn:
+    Description: ARN of MyTest-to-Amf-Subscriptions Task-Def
+    Value: !GetAtt 'MyTestToAMFSubsriptionsTaskDefinition.TaskDefinitionArn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestToAMFSubsriptionsTDArn' ] ]

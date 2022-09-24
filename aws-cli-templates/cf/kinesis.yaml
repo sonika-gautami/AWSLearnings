@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Kinesis Data Streams for MyTest
+
+Parameters:
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+  NoOfShards:
+    Type: Number
+    Default: 1
+  NoOfHoursTTL:
+    Type: Number
+    Default: 24
+
+Resources:
+  MyTestSubscriptionsKinesis:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: "MyTestSubscriptions"
+      RetentionPeriodHours: !Ref NoOfHoursTTL
+      ShardCount: !Ref NoOfShards
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+  AnalyticsDataCollectorKinesis:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: "AnalyticsDataCollector"
+      RetentionPeriodHours: !Ref NoOfHoursTTL
+      ShardCount: !Ref NoOfShards
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+Outputs:
+  MyTestSubscriptionsKinesisARN:
+    Description: The name of the ECS cluster
+    Value: !GetAtt 'MyTestSubscriptionsKinesis.Arn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestSubscriptionsKinesisARN' ] ]
+  AnalyticsDataCollectorKinesisARN:
+    Description: The name of the ECS cluster
+    Value: !GetAtt 'AnalyticsDataCollectorKinesis.Arn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'AnalyticsDataCollectorKinesisARN' ] ]

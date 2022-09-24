@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS TaskDefinitions for MyTest
+
+Parameters:
+  ExecutionRoleARN:
+    Type: String
+    Default: "arn:aws:iam::<account>:role/ecs-task-role"
+  TaskRoleARN:
+    Type: String
+    Default: "arn:aws:iam::<account>:role/ecs-task-role"
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+  DockerCredentialsSMArn:
+    Type: String
+    Default: "arn:aws:secretsmanager:us-east-1:<account>:secret:docker-private-artifcatory-nTdgSd"
+  MongoHost:
+    Type: String
+    Default: "<IP>"
+  MongoAdditionalProps:
+    Type: String
+    Default: ""
+  KinesisShardId:
+    Type: String
+    Default: "shardId-000000000000"
+  MyTestServerImage:
+    Type: String
+    Default: "sonikasg/mytestings:MyTest-server-v2.0"
+
+Resources:
+  MyTestServerTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: "MyTest-Server"
+      Cpu: 256
+      Memory: 512
+      ExecutionRoleArn: !Ref 'ExecutionRoleARN'
+      TaskRoleArn: !Ref 'TaskRoleARN'
+      RequiresCompatibilities:
+        - "EC2"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+      ContainerDefinitions:
+        - Name: "MyTestServerContainer"
+          Image: !Ref 'MyTestServerImage'
+          Environment:
+            - Name: "mongodb_host"
+              Value: !Ref MongoHost
+            - Name: "mongodb_additional_props"
+              Value: !Ref MongoAdditionalProps
+            - Name: "mongo_ssl_enabled"
+              Value: true
+            - Name: "KINESIS_SHARD"
+              Value: !Ref KinesisShardId
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 9090
+              Protocol: "tcp"
+          RepositoryCredentials:
+            CredentialsParameter: !Ref 'DockerCredentialsSMArn'
+
+Outputs:
+  MyTestServerTDArn:
+    Description: The name of the ECS cluster
+    Value: !GetAtt 'MyTestServerTaskDefinition.TaskDefinitionArn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestServerTDArn' ] ]

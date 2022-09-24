@@ -88,3 +88,38 @@ Lamba:
 
 
 
+--------------------------
+AWS EMR: Elastic MapReduce
+AWS Glue: (Metadata store for spark-sql)
+
+	a cluster to run spark-jobs
+
+Using Amazon EMR version 5.8.0 or later, you can
+	configure Spark SQL to use the AWS Glue Data Catalog as its metastore
+
+We recommend this configuration when you require
+	a persistent metastore or
+	a metastore shared by different clusters, services, applications, or AWS accounts.
+
+AWS Glue crawlers can automatically infer schema from source data in Amazon S3 and store the associated metadata in the Data Catalog.
+
+a monthly rate for storing and accessing the metadata in the Data Catalog,
+an hourly rate billed per minute for AWS Glue ETL jobs and crawler runtime, and
+an hourly rate billed per minute for each provisioned development endpoint.
+
+The Data Catalog allows you to store up to a million objects at no charge.
+If you store more than a million objects, you are charged USD$1 for each 100,000 objects over a million.
+An object in the Data Catalog is a table, partition, or database.
+
+Create Hive Table
+	without specifying LOCATION,
+	Then, hive.metastore.warehouse.dir will be used.
+To create a Hive table using AWS Glue:
+	either of above must be set to Amazon-S3
+
+
+--------------------------
+Elastic Cache:
+
+	ElastiCache for Redis
+	ElastiCache for Memcached

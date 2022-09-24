@@ -1,0 +1,275 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MyTest VPC, Secret-Manager
+
+Parameters:
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+  PreferredZone:
+    Type: String
+    Default: "us-east-1c"
+  PreferredZone2:
+    Type: String
+    Default: "us-east-1a"
+  IPToAllowSshFrom:
+    Type: String
+    Default: "Get My IP Address"
+
+Mappings:
+  CIDRMap:
+    VPC:
+      CIDR: "11.0.0.0/20"
+    Public1:
+      CIDR: "11.0.0.0/24"
+    Public2:
+      CIDR: "11.0.1.0/24"
+    Public3:
+      CIDR: "11.0.2.0/24"
+    PublicAutoIP1:
+      CIDR: "11.0.3.0/24"
+    Private1:
+      CIDR: "11.0.4.0/24"
+    Private2:
+      CIDR: "11.0.5.0/24"
+    Private3:
+      CIDR: "11.0.6.0/24"
+
+
+Resources:
+  MyTestVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Fn::FindInMap:
+          - "CIDRMap"
+          - "VPC"
+          - "CIDR"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestVpc"
+  MyTestIG:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestIg"
+  MyTestGatewayToInternet:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      InternetGatewayId:
+        Ref: "MyTestIG"
+  MyTestPublicRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestPublicRouteTable"
+  MyTestPublicRoute:
+    Type: "AWS::EC2::Route"
+    DependsOn: "MyTestGatewayToInternet"
+    Properties:
+      RouteTableId:
+        Ref: "MyTestPublicRouteTable"
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId:
+        Ref: "MyTestIG"
+  MyTestPublicSubnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      AvailabilityZone: !Ref "PreferredZone"
+      MapPublicIpOnLaunch: false
+      CidrBlock:
+        Fn::FindInMap:
+          - "CIDRMap"
+          - "Public1"
+          - "CIDR"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestPublicSubnet"
+  MyTestPublicSubnet2:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      AvailabilityZone: !Ref "PreferredZone2"
+      MapPublicIpOnLaunch: true
+      CidrBlock:
+        Fn::FindInMap:
+          - "CIDRMap"
+          - "Public2"
+          - "CIDR"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestPublicSubnet2"
+  MyTestPublicSubnetAutoPublicIP:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      AvailabilityZone: !Ref "PreferredZone"
+      MapPublicIpOnLaunch: true
+      CidrBlock:
+        Fn::FindInMap:
+          - "CIDRMap"
+          - "PublicAutoIP1"
+          - "CIDR"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestPublicSubnetAutoPublicIP"
+  MyTestPublicSubnetRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: "MyTestPublicSubnet"
+      RouteTableId:
+        Ref: "MyTestPublicRouteTable"
+  MyTestPublicSubnet2RouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: "MyTestPublicSubnet2"
+      RouteTableId:
+        Ref: "MyTestPublicRouteTable"
+  MyTestPublicSubnetAutoPublicIPRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      SubnetId:
+        Ref: "MyTestPublicSubnetAutoPublicIP"
+      RouteTableId:
+        Ref: "MyTestPublicRouteTable"
+  MyTestMongoSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      GroupDescription: ssh & mongo allow
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          CidrIp: !FindInMap
+            - "CIDRMap"
+            - "VPC"
+            - "CIDR"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestMongoSG"
+  MyTestEc2SG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      GroupDescription: ssh, free5gc, dummy-nrf allow.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref 'IPToAllowSshFrom'
+        - IpProtocol: tcp
+          FromPort: 9090
+          ToPort: 9090
+          CidrIp: !FindInMap
+            - "CIDRMap"
+            - "VPC"
+            - "CIDR"
+        - IpProtocol: tcp
+            FromPort: 29511
+            ToPort: 29511
+            CidrIp: !FindInMap
+              - "CIDRMap"
+              - "VPC"
+              - "CIDR"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestEc2SG"
+  MyTestEcsSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: "MyTestVpc"
+      GroupDescription: ssh & MyTest-server allow
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref 'IPToAllowSshFrom'
+        - IpProtocol: tcp
+          FromPort: 9090
+          ToPort: 9090
+          CidrIp: !FindInMap
+            - "CIDRMap"
+            - "VPC"
+            - "CIDR"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+        - Key: "Name"
+          Value: "MyTestEcsSG"
+Outputs:
+  VPCId:
+    Description: "VPCId of VPC"
+    Value:
+      Ref: "MyTestVpc"
+    Export:
+      Name: !Sub "${AWS::Region}-${AWS::StackName}-VPC"
+  MyTestPublicSubnet:
+    Description: "SubnetId of public subnet"
+    Value:
+      Ref: "MyTestPublicSubnet"
+    Export:
+      Name: !Sub "${AWS::Region}-${AWS::StackName}-PublicSubnet"
+  MyTestPublicSubnet2:
+    Description: "SubnetId of public subnet-2"
+    Value:
+      Ref: "MyTestPublicSubnet2"
+    Export:
+      Name: !Sub "${AWS::Region}-${AWS::StackName}-PublicSubnet2"
+  MyTestPublicSubnetAutoPublicIP:
+    Description: "SubnetId of public subnet 1"
+    Value:
+      Ref: "MyTestPublicSubnetAutoPublicIP"
+    Export:
+      Name: !Sub "${AWS::Region}-${AWS::StackName}-PublicSubnetPublicIP"
+  MyTestMongoSG:
+    Description: "SecurityGroup Id"
+    Value:
+      Ref: "MyTestMongoSG"
+    Export:
+      Name: !Sub "${AWS::Region}-${AWS::StackName}-MyTestMongoSG"
+  MyTestEc2SG:
+    Description: "SecurityGroup Id"
+    Value:
+      Ref: "MyTestEc2SG"
+    Export:
+      Name: !Sub "${AWS::Region}-${AWS::StackName}-MyTestEc2SG"
+  MyTestEcsSG:
+    Description: "SecurityGroup Id"
+    Value:
+      Ref: "MyTestEcsSG"
+    Export:
+      Name: !Sub "${AWS::Region}-${AWS::StackName}-MyTestEcsSG"

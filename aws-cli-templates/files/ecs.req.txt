@@ -1,0 +1,11 @@
+ IAM Role with Trust-Rel on ec2 with permissions:
+    -  AmazonEC2ContainerServiceforEC2Role
+
+ IAM Role with Trust-Rel on ecs-tasks with permissions:
+    - SecretsManagerReadWrite
+    - AmazonECSTaskExecutionRolePolicy
+    - AmazonEC2ContainerServiceforEC2Role
+    - AmazonEC2ContainerServiceRole
+    - nwdaf-kinesis-role-access
+
+ S3 Bucket with Read & Write Access

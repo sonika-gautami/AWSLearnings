@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DocumentDB for MyTest
+
+Parameters:
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+  BackupRetentionPeriodInDays:
+    Type: Number
+    Default: 1
+  SubnetsForDocumentDB:
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: "subnet-58fa9d79, subnet-58fa9d79"
+  AzForDocumentDB:
+    Type: List<String>
+    Default: "us-east-1a, us-east-1c"
+  MongoVersionToInstall:
+    Type: String
+    Default: 4.0.0
+  DBUser:
+    Type: String
+    Default: MyTest
+  DBPassword:
+    Type: String
+    Default: MyTest12#
+  DocumentDbInstanceType:
+    Type: String
+    Default: db.t3.medium
+  DocumentDbSg:
+    Type: List<String>
+    Default: "sg-0dff8b4edc21f20a9"
+
+Resources:
+  MyTestDocumentDbSubnetGroup:
+    Type: AWS::DocDB::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: "MyTest-document-db-subnet-group"
+      DBSubnetGroupDescription: "MyTest-document-db-subnet-group"
+      SubnetIds: !Ref SubnetsForDocumentDB
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+  MyTestDocumentDbCluster:
+    Type: AWS::DocDB::DBCluster
+    Properties:
+      DBClusterIdentifier: "MyTest-document-db-guavus"
+      DeletionProtection: Yes
+      AvailabilityZones: !Ref AzForDocumentDB
+      DBSubnetGroupName: !Ref MyTestDocumentDbSubnetGroup
+      StorageEncrypted: Yes
+      EngineVersion: !Ref MongoVersionToInstall
+      Port: 27017
+      VpcSecurityGroupIds: !Ref DocumentDbSg
+      MasterUsername: !Ref DBUser
+      MasterUserPassword: !Ref DBPassword
+      BackupRetentionPeriod: !Ref BackupRetentionPeriodInDays
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+  MyTestDocumentDbInstance1:
+    Type: AWS::DocDB::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref MyTestDocumentDbCluster
+      DBInstanceClass: !Ref DocumentDbInstanceType
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+Outputs:
+  MyTestDocumentDBConnectionUri:
+    Description: MyTest DocumentDb endpoint
+    Value: !GetAtt 'MyTestDocumentDbCluster.Endpoint'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestDocumentDbHost' ] ]

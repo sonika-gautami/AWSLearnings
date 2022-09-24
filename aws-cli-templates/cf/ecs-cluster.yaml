@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS Cluster for MyTest
+
+Parameters:
+  AMIImageId:
+    Type: AWS::EC2::Image::Id
+    Default: "ami-09a3cad575b7eabaa"
+    Description: AMI-Image-Id
+  SSHKeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: "firstsshkeypair"
+    Description: SSH Key pair to connect to EC2
+  SecurityGroupId:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Default: "sg-065a0c2f475fd2a72"
+    Description: Secuiry Group assigned to EC2
+  VPCId:
+    Type: AWS::EC2::VPC::Id
+    Default: "vpc-90ef5bed"
+    Description: Secuiry Group assigned to EC2
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Default: "subnet-58fa9d79"
+    Description: Secuiry Group assigned to EC2
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+  IamRoleForEC2:
+    Type: String
+    Default: "arn:aws:iam::<account>:instance-profile/ecsInstanceRole"
+  NoOfInstances:
+    Type: Number
+    Default: 3
+
+Resources:
+  MyTestECS:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: "MyTest-Containers"
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+  MyTestEcsInstanceLc:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref AMIImageId
+      InstanceType: "t2.micro"
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Ref IamRoleForEC2
+      KeyName: !Ref SSHKeyPairName
+      SecurityGroups: !Ref SecurityGroupId
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          mkdir -p /etc/ecs/
+          echo ECS_CLUSTER=${MyTestECS} >> /etc/ecs/ecs.config
+  MyTestEcsInstanceAsg:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - !Ref SubnetId
+      LaunchConfigurationName: !Ref MyTestEcsInstanceLc
+      MinSize: !Ref NoOfInstances
+      MaxSize: !Ref NoOfInstances
+      DesiredCapacity: !Ref NoOfInstances
+      Tags:
+        - Key: Name
+          Value: !Sub "ECS Instance - ${AWS::StackName}"
+          PropagateAtLaunch: true
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+          PropagateAtLaunch: true
+
+Outputs:
+  MyTestContainersClusterName:
+    Description: The name of the ECS cluster
+    Value: !GetAtt 'MyTestECS.Arn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'MyTestContainersClusterArn' ] ]

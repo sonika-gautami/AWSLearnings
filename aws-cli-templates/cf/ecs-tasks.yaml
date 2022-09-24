@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS Tasks for MyTest
+
+Parameters:
+  ECSClusterStackName:
+    Type: String
+    Default: "MyTestEcsClusterSatck"
+  ECSTaskDefinitionsStackName:
+    Type: String
+    Default: "MyTestEcsTaskDefinitionsSatck"
+  TagKey:
+    Type: String
+    Default: "Project"
+  TagValue:
+    Type: String
+    Default: "MyTest"
+
+Resources:
+  MyTestClient:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: "MyTestClientContainer"
+      Cluster: !ImportValue
+        'Fn::Sub': '${ECSClusterStackName}:MyTestContainersClusterArn'
+      TaskDefinition: !ImportValue
+        'Fn::Sub': '${ECSTaskDefinitionsStackName}:MyTestClientTDArn'
+      DesiredCount: 1
+      LaunchType: EC2
+      PropagateTags: TASK_DEFINITION
+      SchedulingStrategy: REPLICA
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+  MyTestNotification:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: "MyTestNotificationContainer"
+      Cluster: !ImportValue
+        'Fn::Sub': '${ECSClusterStackName}:MyTestContainersClusterArn'
+      TaskDefinition: !ImportValue
+        'Fn::Sub': '${ECSTaskDefinitionsStackName}:MyTestNotificationTDArn'
+      DesiredCount: 1
+      LaunchType: EC2
+      PropagateTags: TASK_DEFINITION
+      SchedulingStrategy: REPLICA
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+  MyTestToNRFSubsriptions:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: "MyTestToNRFSubsriptionsContainer"
+      Cluster: !ImportValue
+        'Fn::Sub': '${ECSClusterStackName}:MyTestContainersClusterArn'
+      TaskDefinition: !ImportValue
+        'Fn::Sub': '${ECSTaskDefinitionsStackName}:MyTestToNRFSubsriptionsTDArn'
+      DesiredCount: 1
+      LaunchType: EC2
+      PropagateTags: TASK_DEFINITION
+      SchedulingStrategy: REPLICA
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+  MyTestToAMFSubsriptions:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: "MyTestToAMFSubsriptionsContainer"
+      Cluster: !ImportValue
+        'Fn::Sub': '${ECSClusterStackName}:MyTestContainersClusterArn'
+      TaskDefinition: !ImportValue
+        'Fn::Sub': '${ECSTaskDefinitionsStackName}:MyTestToAMFSubsriptionsTDArn'
+      DesiredCount: 1
+      LaunchType: EC2
+      PropagateTags: TASK_DEFINITION
+      SchedulingStrategy: REPLICA
+      Tags:
+        - Key: !Ref 'TagKey'
+          Value: !Ref 'TagValue'
+
+
+
